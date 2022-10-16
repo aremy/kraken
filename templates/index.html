@@ -8,7 +8,7 @@
 </head>
 
 <body>
-    <table class="table table-sm">
+    <!--<table class="table table-sm">
         <thead>
             <tr>
                 <th>Ask</th>
@@ -20,6 +20,18 @@
                 <th>Low price</th>
                 <th>High price</th>
                 <th>Open price</th>
+            </tr>
+        </thead>
+        <tbody id="databody">
+
+        </tbody>
+    </table>-->
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Price</th>
+                <th>Volume</th>
+                <th>Side</th>
             </tr>
         </thead>
         <tbody id="databody">
@@ -44,27 +56,36 @@
     <script type="text/javascript">
         'use strict';
         var krakenDataset = []; //initDataset();
+        var latestDeals = [];
+
         initDataset();
         function callback(jsonResponse) {
             let krakenResult = JSON.parse(jsonResponse);
             console.log(krakenResult)
-            for (let result in krakenResult["result"]["XXBTZUSD"].reverse())
-                //console.log(Math.trunc(result[2] * 1000));
-                krakenDataset.push({
-                    x: new Date(Math.trunc(result[2] * 1000)).toISOString(),
-                    y: result[0]
-                })
+            for (const result of krakenResult["result"]["XXBTZUSD"]) {
+                //console.log(krakenResult["result"]["XXBTZUSD"][0]);
+
+                if (!isNaN(result[2])) {//console.log(Math.trunc(result[2] * 1000));
+                    krakenDataset.push({
+                        x: new Date(Math.trunc(result[2] * 1000)).toISOString(),
+                        y: result[0]
+                    });
+                }
+            }
+            myChart.update();
         }
         function initDataset() {
             let targetUrl = "/trades?pair=XBTUSD";
             var xmlHttp = new XMLHttpRequest();
-            xmlHttp.onreadystatechange = function() { 
+            xmlHttp.onreadystatechange = function () {
                 if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
                     callback(xmlHttp.responseText);
             }
             xmlHttp.open("GET", targetUrl, true); // true for asynchronous 
             xmlHttp.send(null);
         }
+
+        var dataBodyElement = document.querySelector("#databody");
 
         function subscribe() {
             let socket = new WebSocket("wss://ws.kraken.com");
@@ -90,18 +111,24 @@
                 console.log(`[message] Data received from server: ${event.data}`);
                 var data = JSON.parse(event.data);
                 if (data[1]) {
+                    console.log(data[1][0][2]);
                     krakenDataset.push({
-                        x: new Date(Date.now()).toISOString(),
+                        //x: new Date(Date.now()).toISOString(),
+                        x: new Date(Math.trunc(data[1][0][2] * 1000)).toISOString(),
                         y: data[1][0][0]
                     })
                     myChart.update();
-                    //console.log(data[1]["a"][0]);
-                    //console.log(new Date(Date.now()).toISOString());
-                    document.querySelector("#databody").insertAdjacentHTML("afterbegin",
+                    
+                    dataBodyElement.insertAdjacentHTML("afterbegin",
                         `<tr>
-                            <td colspan="9">${data[1][0]}</td>
+                            <td>${data[1][0][0]}</td>
+                            <td>${new Date(Math.trunc(data[1][0][2] * 1000)).toISOString()}</td>
+                            <td>${data[1][0][3]}</td>
                         </tr>`
                     )
+                    if (dataBodyElement.childNodes.length > 10) {
+                        dataBodyElement.remove(dataBodyElement.lastChild);
+                    }
                 }
                 //for items in 
                 //document.querySelector("#dataBody")
@@ -125,14 +152,15 @@
 
         // Any of the following formats may be used
         const ctx = document.querySelector('#myChart');
-        //const ctx = document.getElementById('myChart').getContext('2d');
-        //const ctx = $('#myChart');
-        //const ctx = 'myChart';
         const myChart = new Chart(ctx, {
             type: 'line',
             data: {
                 datasets: [{
+                    label:"Latest Prices",
                     data: krakenDataset,
+                    pointRadius: 1,
+                    pointHoverRadius: 1
+
                 }]
             },
             options: {
