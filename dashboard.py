@@ -14,6 +14,10 @@ def trades():
     args = flask_request.args
     return requests.get(f"https://api.kraken.com/0/public/Trades?pair={args.get('pair')}").json()
 
+@app.route("/ticker", methods=['GET'])
+def ticker():
+    args = flask_request.args
+    return requests.get(f"https://api.kraken.com/0/public/Ticker?pair={args.get('pair')}").json()
 
 if __name__ == '__main__':
    app.run()

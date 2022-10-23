@@ -8,40 +8,37 @@
 </head>
 
 <body>
-    <!--<table class="table table-sm">
-        <thead>
-            <tr>
-                <th>Ask</th>
-                <th>Bid</th>
-                <th>Close</th>
-                <th>Volume</th>
-                <th>Volume weighted average price</th>
-                <th>Number of trades</th>
-                <th>Low price</th>
-                <th>High price</th>
-                <th>Open price</th>
-            </tr>
-        </thead>
-        <tbody id="databody">
 
-        </tbody>
-    </table>-->
-    <table class="table table-sm">
-        <thead>
-            <tr>
-                <th>Price</th>
-                <th>Volume</th>
-                <th>Side</th>
-            </tr>
-        </thead>
-        <tbody id="databody">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div id="header"></div>
+            </div>
+        </div>
+        <div class="row">
 
-        </tbody>
-    </table>
-    <div id="container">
-        <canvas id="myChart" width="400" height="100"></canvas>
+            <div class="col-9">
+                <div id="container">
+                    <canvas id="myChart" width="200px" height="100px"></canvas>
+                </div>
+            </div>
+            <div class="col-3">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Price</th>
+                            <th>Volume</th>
+                            <th>Side</th>
+                        </tr>
+                    </thead>
+                    <tbody id="databody">
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
-
 
     <!-- JavaScript Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"
@@ -53,119 +50,54 @@
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script
         src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+    <script src="{{url_for('static', filename='js/kraken.js')}}"></script>
+
     <script type="text/javascript">
         'use strict';
         var krakenDataset = []; //initDataset();
         var latestDeals = [];
 
+        initGeneralInformation();
         initDataset();
-        function callback(jsonResponse) {
-            let krakenResult = JSON.parse(jsonResponse);
-            console.log(krakenResult)
-            for (const result of krakenResult["result"]["XXBTZUSD"]) {
-                //console.log(krakenResult["result"]["XXBTZUSD"][0]);
-
-                if (!isNaN(result[2])) {//console.log(Math.trunc(result[2] * 1000));
-                    krakenDataset.push({
-                        x: new Date(Math.trunc(result[2] * 1000)).toISOString(),
-                        y: result[0]
-                    });
-                }
-            }
-            myChart.update();
-        }
-        function initDataset() {
-            let targetUrl = "/trades?pair=XBTUSD";
-            var xmlHttp = new XMLHttpRequest();
-            xmlHttp.onreadystatechange = function () {
-                if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
-                    callback(xmlHttp.responseText);
-            }
-            xmlHttp.open("GET", targetUrl, true); // true for asynchronous 
-            xmlHttp.send(null);
-        }
-
-        var dataBodyElement = document.querySelector("#databody");
-
-        function subscribe() {
-            let socket = new WebSocket("wss://ws.kraken.com");
-            let message = {
-                "event": "subscribe",
-                "pair": [
-                    "XBT/USD",
-                    //"XBT/EUR"
-                ],
-                "subscription": {
-                    "name": "trade"
-                    //"name": "ticker"
-                }
-            }
-
-            socket.onopen = function (e) {
-                console.log("[open] Connection established");
-                console.log("Sending to server");
-                socket.send(JSON.stringify(message));
-            };
-
-            socket.onmessage = function (event) {
-                console.log(`[message] Data received from server: ${event.data}`);
-                var data = JSON.parse(event.data);
-                if (data[1]) {
-                    console.log(data[1][0][2]);
-                    krakenDataset.push({
-                        //x: new Date(Date.now()).toISOString(),
-                        x: new Date(Math.trunc(data[1][0][2] * 1000)).toISOString(),
-                        y: data[1][0][0]
-                    })
-                    myChart.update();
-                    
-                    dataBodyElement.insertAdjacentHTML("afterbegin",
-                        `<tr>
-                            <td>${data[1][0][0]}</td>
-                            <td>${new Date(Math.trunc(data[1][0][2] * 1000)).toISOString()}</td>
-                            <td>${data[1][0][3]}</td>
-                        </tr>`
-                    )
-                    if (dataBodyElement.childNodes.length > 10) {
-                        dataBodyElement.remove(dataBodyElement.lastChild);
-                    }
-                }
-                //for items in 
-                //document.querySelector("#dataBody")
-            };
-
-            socket.onclose = function (event) {
-                if (event.wasClean) {
-                    console.log(`[close] Connection closed cleanly, code=${event.code} reason=${event.reason}`);
-                } else {
-                    // e.g. server process killed or network down
-                    // event.code is usually 1006 in this case
-                    console.log('[close] Connection died');
-                }
-            };
-
-            socket.onerror = function (error) {
-                console.log(`[error] ${error.message}`);
-            };
-        }
-
 
         // Any of the following formats may be used
+        var animation = {}
+
         const ctx = document.querySelector('#myChart');
         const myChart = new Chart(ctx, {
             type: 'line',
             data: {
                 datasets: [{
-                    label:"Latest Prices",
+                    label: "Latest Prices",
                     data: krakenDataset,
-                    pointRadius: 1,
-                    pointHoverRadius: 1
+                    borderWidth: 1,
+                    radius: 0,
+
+                    //pointRadius: 0,
+                    //pointHoverRadius: 5,
+                    //file: false,
+                    borderColor: '#3ABEFF',
+                    //borderWidth: 3,
+                    lineTension: 0.05,
 
                 }]
             },
             options: {
+                animations: animation,
+                interaction: {
+                    intersect: false
+                },
+                plugins: {
+                    legend: false
+                },
                 scales: {
                     x: {
+
+                        grid: {
+                            display: false,
+                        },
+
                         // The axis for this scale is determined from the first letter of the id as `'x'`
                         // It is recommended to specify `position` and / or `axis` explicitly.
                         //type: 'time',
@@ -181,12 +113,103 @@
                             }
                         }
 
+                    },
+                    y: {
+                        //beginAtZero: true,
+                        grid: {
+                            display: false,
+                        },
                     }
-                }
-            }
-        });
+                },
 
-        subscribe()
+                /*plugins: {
+                    corsair: {
+                        dash: [2, 2],
+                        color: 'red',
+                        width: 3
+                    }
+                }*/
+            }/*,
+            plugins: [{
+                id: 'corsair',
+                afterInit: (chart) => {
+                    chart.corsair = {
+                        x: 0,
+                        y: 0
+                    }
+                },
+                afterEvent: (chart, evt) => {
+                    const {
+                        chartArea: {
+                            top,
+                            bottom,
+                            left,
+                            right
+                        }
+                    } = chart;
+                    const {
+                        event: {
+                            x,
+                            y
+                        }
+                    } = evt;
+                    if (x < left || x > right || y < top || y > bottom) {
+                        chart.corsair = {
+                            x,
+                            y,
+                            draw: false
+                        }
+                        chart.draw();
+                        return;
+                    }
+
+                    chart.corsair = {
+                        x,
+                        y,
+                        draw: true
+                    }
+
+                    chart.draw();
+                },
+                afterDatasetsDraw: (chart, _, opts) => {
+                    const {
+                        ctx,
+                        chartArea: {
+                            top,
+                            bottom,
+                            left,
+                            right
+                        }
+                    } = chart;
+                    const {
+                        x,
+                        y,
+                        draw
+                    } = chart.corsair;
+
+                    if (!draw) {
+                        return;
+                    }
+
+                    ctx.lineWidth = opts.width || 0;
+                    ctx.setLineDash(opts.dash || []);
+                    ctx.strokeStyle = opts.color || 'black'
+
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(x, bottom);
+                    ctx.lineTo(x, top);
+                    ctx.moveTo(left, y);
+                    ctx.lineTo(right, y);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+            }]
+            */
+        });
+        var targetTable = document.querySelector("#databody");
+        subscribe(targetTable, myChart)
 
     </script>
     <!--
